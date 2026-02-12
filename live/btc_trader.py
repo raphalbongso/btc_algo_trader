@@ -149,9 +149,9 @@ class BTCTrader:
             logger.critical("RISK LIMIT HIT -- forcing neutral")
             signal = 0
 
-        # Spot cannot short
-        if self.mode == "spot" and signal == -1:
-            logger.warning("Cannot short on spot -- going neutral")
+        # Spot/paper cannot short
+        if self.mode in ("spot", "paper") and signal == -1:
+            logger.warning("Cannot short on spot/paper -- going neutral")
             signal = 0
 
         # Update paper executor's price
@@ -204,7 +204,7 @@ class BTCTrader:
             if self.mode == "paper":
                 self.order_manager.executor.set_price(current_price)
 
-            if self.mode == "spot" and signal == -1:
+            if self.mode in ("spot", "paper") and signal == -1:
                 signal = 0
 
             self.order_manager.update_equity(current_price)
