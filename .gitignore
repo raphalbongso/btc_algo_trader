@@ -1,0 +1,16 @@
+pyalgo.cfg
+.env
+__pycache__/
+*.pkl
+cache/
+*.h5
+*.pyc
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+*.db
+models/
+*.log

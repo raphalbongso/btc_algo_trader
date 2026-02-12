@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  trader:
+    build: .
+    env_file: .env
+    command: >
+      python deployment/automated_strategy.py
+      --mode paper --strategy momentum --zmq
+    ports:
+      - "5555:5555"
+    restart: unless-stopped
+
+  monitor:
+    build: .
+    command: >
+      python deployment/strategy_monitoring.py --host trader --port 5555
+    depends_on:
+      - trader
