@@ -29,7 +29,7 @@ class OrderManager:
     Parameters
     ----------
     executor : BrokerBase
-        The execution backend (MEXC or paper).
+        The execution backend (OKX or paper).
     max_position_size : float
         Maximum BTC position size.
     max_drawdown_pct : float

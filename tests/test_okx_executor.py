@@ -1,29 +1,30 @@
-"""Tests for execution.mexc_executor (using mocked CCXT)."""
+"""Tests for execution.okx_executor (using mocked CCXT)."""
 
 from unittest.mock import patch, MagicMock
 
 import ccxt
 import pytest
 
-from execution.mexc_executor import MEXCExecutor
+from execution.okx_executor import OKXExecutor
 
 
 @pytest.fixture
-def mock_exchange(mock_mexc_exchange):
-    """Patch ccxt.mexc to return our mock."""
-    return mock_mexc_exchange
+def mock_exchange(mock_okx_exchange):
+    """Patch ccxt.okx to return our mock."""
+    return mock_okx_exchange
 
 
-class TestMEXCExecutor:
+class TestOKXExecutor:
     def _create_executor(self, mock_exchange, trading_type="spot"):
         """Create executor with mocked exchange."""
-        with patch("execution.mexc_executor.ccxt.mexc") as mock_cls:
+        with patch("execution.okx_executor.ccxt.okx") as mock_cls:
             mock_cls.return_value = mock_exchange
             mock_exchange.urls = {}  # No sandbox URL
             mock_exchange.load_markets.return_value = None
-            executor = MEXCExecutor(
+            executor = OKXExecutor(
                 api_key="test_key",
                 secret_key="test_secret",
+                passphrase="test_passphrase",
                 trading_type=trading_type,
                 sandbox=False,
             )
@@ -96,6 +97,6 @@ class TestMEXCExecutor:
         assert executor.cancel_all_orders() is True
 
     def test_no_api_key_raises(self):
-        with pytest.raises(ValueError, match="MEXC_API_KEY"):
-            with patch("execution.mexc_executor.os.environ.get", return_value=""):
-                MEXCExecutor(api_key="", secret_key="")
+        with pytest.raises(ValueError, match="OKX_API_KEY"):
+            with patch("execution.okx_executor.os.environ.get", return_value=""):
+                OKXExecutor(api_key="", secret_key="", passphrase="")

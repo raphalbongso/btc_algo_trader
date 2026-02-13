@@ -1,4 +1,4 @@
-"""CLI: Start live trading on MEXC (paper, spot, or futures)."""
+"""CLI: Start live trading on OKX (paper, spot, or futures)."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from config.settings import load_config, MEXCConfig, TradingConfig
+from config.settings import load_config, OKXConfig, TradingConfig
 from config.logging_config import setup_logging
 from strategies.sma_strategy import SMAStrategy
 from strategies.momentum_strategy import MomentumStrategy
@@ -27,7 +27,7 @@ def _shutdown(signum, frame):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="BTC/USDT Live Trader for MEXC")
+    parser = argparse.ArgumentParser(description="BTC/USDT Live Trader for OKX")
     parser.add_argument(
         "--mode", choices=["paper", "spot", "futures"], default="paper",
         help="Trading mode (default: paper)",
@@ -79,7 +79,7 @@ def main():
         momentum_window=args.momentum,
     )
 
-    mexc_config = MEXCConfig(
+    okx_config = OKXConfig(
         leverage=args.leverage,
         trading_type="swap" if args.mode == "futures" else "spot",
         sandbox=(args.mode == "paper"),
@@ -90,14 +90,14 @@ def main():
 
     print(f"Starting BTC Trader: mode={args.mode}, strategy={args.strategy}")
     if args.mode != "paper":
-        print("WARNING: This will trade REAL money on MEXC!")
+        print("WARNING: This will trade REAL money on OKX!")
         print(f"  Units: {args.units} BTC, Leverage: {args.leverage}x")
 
     _trader = BTCTrader(
         strategy=strategy,
         mode=args.mode,
         trading_config=trading_config,
-        mexc_config=mexc_config,
+        okx_config=okx_config,
         zmq_publish=args.zmq,
     )
 

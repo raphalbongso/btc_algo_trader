@@ -1,4 +1,4 @@
-"""Centralized configuration for MEXC BTC trading bot.
+"""Centralized configuration for OKX BTC trading bot.
 
 Priority: (1) Environment variables -> (2) .env file -> (3) Defaults.
 API keys NEVER in code. Always load from environment.
@@ -16,14 +16,15 @@ load_dotenv()
 
 
 @dataclass(frozen=True)
-class MEXCConfig:
-    """MEXC exchange credentials and settings."""
-    api_key: str = field(default_factory=lambda: os.environ.get("MEXC_API_KEY", ""))
-    secret_key: str = field(default_factory=lambda: os.environ.get("MEXC_SECRET_KEY", ""))
-    trading_type: str = "spot"       # 'spot' or 'swap' (futures)
-    leverage: int = 1                # 1 = no leverage (spot), >1 = futures
-    margin_mode: str = "isolated"    # 'isolated' or 'cross'
-    sandbox: bool = True             # USE SANDBOX/TESTNET FIRST
+class OKXConfig:
+    """OKX exchange credentials and settings."""
+    api_key: str = field(default_factory=lambda: os.environ.get("OKX_API_KEY", ""))
+    secret_key: str = field(default_factory=lambda: os.environ.get("OKX_SECRET_KEY", ""))
+    passphrase: str = field(default_factory=lambda: os.environ.get("OKX_PASSPHRASE", ""))
+    trading_type: str = "swap"          # 'spot' or 'swap' (futures)
+    leverage: int = 1                   # 1 = no leverage (spot), >1 = futures
+    margin_mode: str = "isolated"       # 'isolated' or 'cross'
+    sandbox: bool = True                # USE SANDBOX/TESTNET FIRST
 
 
 @dataclass(frozen=True)
@@ -40,8 +41,8 @@ class TradingConfig:
     units: float = 0.001                     # BTC amount per trade
     initial_capital: float = 1000.0          # USDT
     ftc: float = 0.0                         # Fixed transaction cost
-    ptc: float = 0.0005                      # Proportional TC (MEXC spot taker: 0.05%)
-    ptc_futures: float = 0.0002              # Futures taker: 0.02%
+    ptc: float = 0.001                       # Proportional TC (OKX spot taker: 0.1%)
+    ptc_futures: float = 0.0005              # Futures taker: 0.05%
     trading_days: int = 365                  # Crypto trades 24/7
     risk_free_rate: float = 0.0
     max_leverage: float = 5.0               # Max leverage for futures
@@ -65,20 +66,20 @@ class ZMQConfig:
 
 @dataclass(frozen=True)
 class AppConfig:
-    mexc: MEXCConfig = field(default_factory=MEXCConfig)
+    okx: OKXConfig = field(default_factory=OKXConfig)
     trading: TradingConfig = field(default_factory=TradingConfig)
     zmq: ZMQConfig = field(default_factory=ZMQConfig)
 
 
 def load_config() -> AppConfig:
     """Load all configuration objects with validation."""
-    mexc = MEXCConfig()
+    okx = OKXConfig()
     trading = TradingConfig()
     zmq = ZMQConfig()
 
-    if not mexc.api_key and not mexc.sandbox:
-        raise ValueError("MEXC_API_KEY required for live trading")
+    if not okx.api_key and not okx.sandbox:
+        raise ValueError("OKX_API_KEY required for live trading")
     if trading.max_leverage > 20:
         raise ValueError("Max leverage capped at 20x for safety")
 
-    return AppConfig(mexc=mexc, trading=trading, zmq=zmq)
+    return AppConfig(okx=okx, trading=trading, zmq=zmq)

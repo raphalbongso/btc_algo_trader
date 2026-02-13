@@ -34,7 +34,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--start", type=str, default="2020-01-01", help="Start date")
     parser.add_argument("--end", type=str, default="2024-12-31", help="End date")
-    parser.add_argument("--ptc", type=float, default=0.0005, help="Proportional TC (MEXC spot taker: 0.05%%)")
+    parser.add_argument("--ptc", type=float, default=0.001, help="Proportional TC (OKX spot taker: 0.1%%)")
     parser.add_argument("--ftc", type=float, default=0.0, help="Fixed TC (event-based)")
 
     # SMA params

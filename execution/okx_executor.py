@@ -1,4 +1,4 @@
-"""MEXC order execution via CCXT.
+"""OKX order execution via CCXT.
 
 Supports spot (BTC/USDT) and futures (BTC/USDT:USDT perpetual).
 Market and limit orders, position management, leverage configuration.
@@ -24,29 +24,32 @@ from execution.broker_base import BrokerBase
 logger = logging.getLogger(__name__)
 
 
-class MEXCExecutor(BrokerBase):
-    """MEXC spot + futures execution engine."""
+class OKXExecutor(BrokerBase):
+    """OKX spot + futures execution engine."""
 
     def __init__(
         self,
         api_key: Optional[str] = None,
         secret_key: Optional[str] = None,
+        passphrase: Optional[str] = None,
         trading_type: Literal["spot", "swap"] = "spot",
         leverage: int = 1,
         margin_mode: str = "isolated",
         sandbox: bool = True,
     ):
-        self._api_key = api_key or os.environ.get("MEXC_API_KEY", "")
-        self._secret_key = secret_key or os.environ.get("MEXC_SECRET_KEY", "")
+        self._api_key = api_key or os.environ.get("OKX_API_KEY", "")
+        self._secret_key = secret_key or os.environ.get("OKX_SECRET_KEY", "")
+        self._passphrase = passphrase or os.environ.get("OKX_PASSPHRASE", "")
         self._trading_type = trading_type
         self._leverage = leverage
 
         if not self._api_key:
-            raise ValueError("MEXC_API_KEY is required")
+            raise ValueError("OKX_API_KEY is required")
 
-        self._exchange = ccxt.mexc({
+        self._exchange = ccxt.okx({
             "apiKey": self._api_key,
             "secret": self._secret_key,
+            "password": self._passphrase,
             "enableRateLimit": True,
             "options": {"defaultType": trading_type},
         })
@@ -56,15 +59,16 @@ class MEXCExecutor(BrokerBase):
                 self._exchange.set_sandbox_mode(True)
                 logger.info("SANDBOX MODE ENABLED")
             else:
-                logger.warning("MEXC sandbox not available -- using LIVE with caution")
+                logger.warning("OKX sandbox not available -- using LIVE with caution")
 
         self._exchange.load_markets()
 
         # Configure futures leverage/margin
         if trading_type == "swap" and leverage > 1:
             try:
-                self._exchange.set_leverage(leverage, "BTC/USDT:USDT")
-                self._exchange.set_margin_mode(margin_mode, "BTC/USDT:USDT")
+                self._exchange.set_leverage(leverage, "BTC/USDT:USDT", {
+                    "mgnMode": margin_mode,  # "isolated" or "cross"
+                })
                 logger.info(f"Futures: leverage={leverage}x, margin={margin_mode}")
             except Exception as e:
                 logger.error(f"Failed to set leverage/margin: {e}")
@@ -147,6 +151,12 @@ class MEXCExecutor(BrokerBase):
         """Core order placement with validation, retry, and logging."""
         market = self._exchange.markets.get(self.symbol)
         if market:
+            # Convert BTC amount to contracts for futures
+            contract_size = market.get("contractSize")
+            if contract_size and self._trading_type == "swap":
+                amount = round(amount / float(contract_size))
+                logger.debug(f"Converted to {amount} contracts (size={contract_size})")
+
             min_amount = market["limits"]["amount"]["min"]
             if min_amount and amount < min_amount:
                 logger.error(f"Order amount {amount} below minimum {min_amount}")

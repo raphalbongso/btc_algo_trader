@@ -1,11 +1,11 @@
-# BTC Algorithmic Trading Bot for MEXC
+# BTC Algorithmic Trading Bot for OKX
 
-A production-grade BTC/USDT algorithmic trading system targeting the **MEXC exchange** via **CCXT**. Based on all 10 chapters of *Python for Algorithmic Trading* (Yves Hilpisch, O'Reilly), adapted for cryptocurrency spot and futures trading.
+A production-grade BTC/USDT algorithmic trading system targeting the **OKX exchange** via **CCXT**. Based on all 10 chapters of *Python for Algorithmic Trading* (Yves Hilpisch, O'Reilly), adapted for cryptocurrency spot and futures trading.
 
-**Target exchange:** MEXC Global (spot + futures)
+**Target exchange:** OKX (spot + futures)
 **Primary pair:** BTC/USDT
-**Broker library:** CCXT (`ccxt.mexc()`)
-**Trading modes:** Paper → MEXC Spot → MEXC Futures
+**Broker library:** CCXT (`ccxt.okx()`)
+**Trading modes:** Paper → OKX Spot → OKX Futures
 
 > **Disclaimer:** This system is for educational purposes. Cryptocurrency trading involves significant risk of financial loss. Futures trading with leverage can result in losses exceeding your initial deposit. Always start with paper trading and small amounts. Never trade money you cannot afford to lose.
 
@@ -15,8 +15,8 @@ A production-grade BTC/USDT algorithmic trading system targeting the **MEXC exch
 
 ```
 btc_algo_trader/
-├── config/                 # MEXCConfig, TradingConfig, ZMQConfig, structlog
-├── data/                   # MEXC OHLCV via CCXT, yfinance fallback, GBM synthetic,
+├── config/                 # OKXConfig, TradingConfig, ZMQConfig, structlog
+├── data/                   # OKX OHLCV via CCXT, yfinance fallback, GBM synthetic,
 │                           #   WebSocket client, ZeroMQ tick server, HDF5/SQLite storage
 ├── strategies/             # SMA, momentum, mean reversion, ML (sklearn),
 │                           #   DNN (Keras), ensemble voting
@@ -24,7 +24,7 @@ btc_algo_trader/
 │   ├── vectorized/         # SMA, momentum, MR, LR, scikit backtesters
 │   ├── event_based/        # Long-only and long/short with dual TC (ftc + ptc)
 │   └── performance.py      # Sharpe, Sortino, drawdown, VaR, CVaR, Kelly
-├── execution/              # MEXCExecutor (CCXT), PaperExecutor, OrderManager
+├── execution/              # OKXExecutor (CCXT), PaperExecutor, OrderManager
 ├── live/                   # BTCTrader (unified bot), SignalRouter
 ├── monitoring/             # ZMQ logger, strategy monitor, Plotly dashboard, alerts
 ├── deployment/             # Automated strategy runner, remote monitoring
@@ -48,8 +48,8 @@ pip install -r requirements.txt
 
 ```bash
 cp .env.example .env
-# Edit .env: add your MEXC API key + secret
-# Get keys at: https://www.mexc.com/user/openapi
+# Edit .env: add your OKX API key, secret, and passphrase
+# Get keys at: https://www.okx.com/account/my-api
 ```
 
 ### 3. Backtest (no API key needed)
@@ -113,8 +113,8 @@ pytest tests/ -v --tb=short --timeout=60
 ### 11. Docker
 
 ```bash
-docker build -t btc-mexc-trader .
-docker run --env-file .env btc-mexc-trader
+docker build -t btc-okx-trader .
+docker run --env-file .env btc-okx-trader
 ```
 
 ## Strategies
@@ -134,16 +134,16 @@ All strategies use `.shift(1)` on signals to prevent look-ahead bias. ML strateg
 
 | Mode | Fee | Default `ptc` |
 |------|-----|---------------|
-| MEXC Spot (taker) | 0.05% | `0.0005` |
-| MEXC Futures (taker) | 0.02% | `0.0002` |
-| Event-based | Fixed + proportional | `ftc=0`, `ptc=0.0005` |
+| OKX Spot (taker) | 0.1% | `0.001` |
+| OKX Futures (taker) | 0.05% | `0.0005` |
+| Event-based | Fixed + proportional | `ftc=0`, `ptc=0.001` |
 
 ## Data Fallback Chain
 
 The data loader tries four sources in order:
 
 1. **Local pickle cache** (fastest)
-2. **MEXC OHLCV via CCXT** (real exchange data, no API key needed)
+2. **OKX OHLCV via CCXT** (real exchange data, no API key needed)
 3. **yfinance** (`BTC-USD`)
 4. **Synthetic GBM** (sigma=0.8, always works)
 
@@ -173,13 +173,13 @@ The data loader tries four sources in order:
 | 4 | Vectorized backtesting | `backtesting/vectorized/`, `strategies/` |
 | 5 | ML prediction | `strategies/ml_strategy.py`, `strategies/dnn_strategy.py` |
 | 6 | Event-based backtesting | `backtesting/event_based/` |
-| 7 | Streaming, real-time | `data/mexc_ws_client.py`, `monitoring/dashboard.py` |
-| 8 | Live trading (Oanda → MEXC) | `execution/mexc_executor.py`, `live/btc_trader.py` |
-| 9 | Crypto trading (FXCM → MEXC) | `execution/mexc_executor.py` (unified) |
+| 7 | Streaming, real-time | `data/okx_ws_client.py`, `monitoring/dashboard.py` |
+| 8 | Live trading (Oanda → OKX) | `execution/okx_executor.py`, `live/btc_trader.py` |
+| 9 | Crypto trading (FXCM → OKX) | `execution/okx_executor.py` (unified) |
 | 10 | Kelly, deployment | `backtesting/performance.py`, `deployment/` |
 
 ## References
 
 - Hilpisch, Y. J. (2020). *Python for Algorithmic Trading*. O'Reilly.
 - [CCXT Library](https://github.com/ccxt/ccxt)
-- [MEXC API Docs](https://mexcdevelop.github.io/apidocs/)
+- [OKX API Docs](https://www.okx.com/docs-v5/en/)

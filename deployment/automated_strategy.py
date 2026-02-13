@@ -1,4 +1,4 @@
-"""Full deployment script for automated BTC trading on MEXC (Ch.10).
+"""Full deployment script for automated BTC trading on OKX (Ch.10).
 
 Orchestrates:
 1. Load config
@@ -80,7 +80,7 @@ def main():
         strategy=strategy,
         mode=args.mode,
         trading_config=config.trading,
-        mexc_config=config.mexc,
+        okx_config=config.okx,
         zmq_publish=args.zmq,
     )
 

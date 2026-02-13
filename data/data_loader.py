@@ -2,7 +2,7 @@
 
 Fallback chain:
   Level 1: Local pickle cache
-  Level 2: MEXC OHLCV via CCXT (live exchange data, no key needed)
+  Level 2: OKX OHLCV via CCXT (live exchange data, no key needed)
   Level 3: yfinance ('BTC-USD')
   Level 4: Synthetic GBM (WARNING logged)
 """
@@ -65,17 +65,17 @@ def load_btc_data(
         logger.info("loading_from_cache", path=str(cache_file))
         return pd.read_pickle(cache_file)
 
-    # Level 2: MEXC via CCXT
+    # Level 2: OKX via CCXT
     try:
-        df = _fetch_mexc_ohlcv(symbol, start, end, timeframe)
+        df = _fetch_okx_ohlcv(symbol, start, end, timeframe)
         if len(df) > 50:
             if use_cache:
                 df.to_pickle(cache_file)
                 logger.info("cached_data", path=str(cache_file))
             return df
-        logger.warning("mexc_insufficient_data", rows=len(df))
+        logger.warning("okx_insufficient_data", rows=len(df))
     except Exception as e:
-        logger.warning("mexc_fetch_failed", error=str(e))
+        logger.warning("okx_fetch_failed", error=str(e))
 
     # Level 3: yfinance
     try:
@@ -110,23 +110,23 @@ def load_btc_data(
     return df
 
 
-def _fetch_mexc_ohlcv(
+def _fetch_okx_ohlcv(
     symbol: str,
     start: str,
     end: str,
     timeframe: str,
 ) -> pd.DataFrame:
-    """Fetch OHLCV from MEXC via CCXT. No API key needed for public data."""
+    """Fetch OHLCV from OKX via CCXT. No API key needed for public data."""
     import ccxt
 
-    exchange = ccxt.mexc({"enableRateLimit": True})
+    exchange = ccxt.okx({"enableRateLimit": True})
     exchange.load_markets()
 
     since = exchange.parse8601(f"{start}T00:00:00Z")
     end_ts = exchange.parse8601(f"{end}T00:00:00Z")
 
     all_ohlcv = []
-    logger.info("fetching_mexc_ohlcv", symbol=symbol, timeframe=timeframe)
+    logger.info("fetching_okx_ohlcv", symbol=symbol, timeframe=timeframe)
 
     while since < end_ts:
         ohlcv = exchange.fetch_ohlcv(symbol, timeframe, since=since, limit=1000)
@@ -148,5 +148,5 @@ def _fetch_mexc_ohlcv(
     df["returns"] = np.log(df["price"] / df["price"].shift(1))
     df.dropna(inplace=True)
 
-    logger.info("mexc_ohlcv_fetched", bars=len(df))
+    logger.info("okx_ohlcv_fetched", bars=len(df))
     return df

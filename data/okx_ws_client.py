@@ -1,4 +1,4 @@
-"""MEXC WebSocket client for real-time tick data.
+"""OKX WebSocket client for real-time tick data.
 
 Uses raw websockets for streaming BTC/USDT trades.
 Preferred over REST polling for live trading (lower latency).
@@ -13,26 +13,26 @@ from typing import Callable, Optional
 
 logger = logging.getLogger(__name__)
 
-MEXC_WS_URL = "wss://wbs.mexc.com/ws"
+OKX_WS_URL = "wss://ws.okx.com:8443/ws/v5/public"
 
 
-class MEXCWebSocketClient:
-    """WebSocket client for MEXC real-time data."""
+class OKXWebSocketClient:
+    """WebSocket client for OKX real-time data."""
 
     def __init__(self, on_tick: Optional[Callable] = None):
         self._on_tick = on_tick
         self._running = False
 
-    async def subscribe_trades(self, symbol: str = "BTCUSDT") -> None:
+    async def subscribe_trades(self, symbol: str = "BTC-USDT") -> None:
         """Subscribe to real-time trade stream."""
         import websockets
 
         self._running = True
 
-        async with websockets.connect(MEXC_WS_URL) as ws:
+        async with websockets.connect(OKX_WS_URL) as ws:
             sub_msg = {
-                "method": "SUBSCRIPTION",
-                "params": [f"spot@public.deals.v3.api@{symbol}"],
+                "op": "subscribe",
+                "args": [{"channel": "trades", "instId": symbol}],
             }
             await ws.send(json.dumps(sub_msg))
             logger.info(f"Subscribed to {symbol} trades")
@@ -42,19 +42,19 @@ class MEXCWebSocketClient:
                     msg = await asyncio.wait_for(ws.recv(), timeout=30)
                     data = json.loads(msg)
 
-                    if "d" in data and "deals" in data["d"]:
-                        for deal in data["d"]["deals"]:
+                    if "data" in data:
+                        for trade in data["data"]:
                             tick = {
-                                "price": float(deal["p"]),
-                                "quantity": float(deal["v"]),
-                                "timestamp": int(deal["t"]),
-                                "side": "buy" if deal["S"] == 1 else "sell",
+                                "price": float(trade["px"]),
+                                "quantity": float(trade["sz"]),
+                                "timestamp": int(trade["ts"]),
+                                "side": trade["side"],
                             }
                             if self._on_tick:
                                 self._on_tick(tick)
 
                 except asyncio.TimeoutError:
-                    await ws.send(json.dumps({"method": "PING"}))
+                    await ws.send("ping")
                 except Exception as e:
                     logger.error(f"WebSocket error: {e}")
                     break
@@ -64,7 +64,7 @@ class MEXCWebSocketClient:
         self._running = False
 
 
-def run_ws_client(on_tick: Callable, symbol: str = "BTCUSDT") -> None:
+def run_ws_client(on_tick: Callable, symbol: str = "BTC-USDT") -> None:
     """Convenience function to run WebSocket client."""
-    client = MEXCWebSocketClient(on_tick=on_tick)
+    client = OKXWebSocketClient(on_tick=on_tick)
     asyncio.run(client.subscribe_trades(symbol))

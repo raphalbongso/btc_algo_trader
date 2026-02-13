@@ -1,13 +1,13 @@
-"""Unified BTC/USDT Trading Bot for MEXC.
+"""Unified BTC/USDT Trading Bot for OKX.
 
 Combines Ch.7 streaming, Ch.8 momentum trading, Ch.10 ML + Kelly sizing.
 
 Trading modes:
 - 'paper': Simulated execution (no exchange connection)
-- 'spot':  MEXC spot trading (BTC/USDT)
-- 'futures': MEXC USDT-M perpetual futures (BTC/USDT:USDT)
+- 'spot':  OKX spot trading (BTC/USDT)
+- 'futures': OKX USDT-M perpetual futures (BTC/USDT:USDT)
 
-CRITICAL: In 'spot'/'futures' modes this trades REAL money on MEXC.
+CRITICAL: In 'spot'/'futures' modes this trades REAL money on OKX.
 Always test with 'paper' mode first, then small amounts.
 """
 
@@ -22,9 +22,9 @@ import numpy as np
 import pandas as pd
 import ccxt
 
-from config.settings import AppConfig, MEXCConfig, TradingConfig, load_config
+from config.settings import AppConfig, OKXConfig, TradingConfig, load_config
 from strategies.base import StrategyBase
-from execution.mexc_executor import MEXCExecutor
+from execution.okx_executor import OKXExecutor
 from execution.paper_executor import PaperExecutor
 from execution.order_manager import OrderManager
 
@@ -32,14 +32,14 @@ logger = logging.getLogger(__name__)
 
 
 class BTCTrader:
-    """Unified BTC trading bot targeting MEXC exchange."""
+    """Unified BTC trading bot targeting OKX exchange."""
 
     def __init__(
         self,
         strategy: StrategyBase,
         mode: str = "paper",
         trading_config: Optional[TradingConfig] = None,
-        mexc_config: Optional[MEXCConfig] = None,
+        okx_config: Optional[OKXConfig] = None,
         zmq_publish: bool = False,
     ):
         if mode not in ("paper", "spot", "futures"):
@@ -48,7 +48,7 @@ class BTCTrader:
         self.strategy = strategy
         self.mode = mode
         self.config = trading_config or TradingConfig()
-        self.mexc_config = mexc_config or MEXCConfig()
+        self.okx_config = okx_config or OKXConfig()
 
         # State
         self.bar_data = pd.DataFrame()
@@ -61,22 +61,34 @@ class BTCTrader:
                 ptc=self.config.ptc,
             )
         else:
-            executor = MEXCExecutor(
+            executor = OKXExecutor(
                 trading_type="spot" if mode == "spot" else "swap",
-                leverage=int(self.mexc_config.leverage),
-                margin_mode=self.mexc_config.margin_mode,
-                sandbox=self.mexc_config.sandbox,
+                leverage=int(self.okx_config.leverage),
+                margin_mode=self.okx_config.margin_mode,
+                sandbox=self.okx_config.sandbox,
             )
+
+        # Auto-detect real balance for live modes
+        initial_capital = self.config.initial_capital
+        if mode != "paper":
+            try:
+                bal = executor.get_balance()
+                real_usdt = bal.get("USDT_free", 0)
+                if real_usdt > 0:
+                    initial_capital = real_usdt
+                    logger.info(f"Detected account balance: {real_usdt:.2f} USDT")
+            except Exception as e:
+                logger.warning(f"Could not fetch balance, using config: {e}")
 
         self.order_manager = OrderManager(
             executor=executor,
             max_position_size=self.config.units * self.config.max_leverage,
             max_drawdown_pct=self.config.max_drawdown_pct,
-            initial_capital=self.config.initial_capital,
+            initial_capital=initial_capital,
         )
 
         # CCXT for public data (no key needed)
-        self._exchange = ccxt.mexc({"enableRateLimit": True})
+        self._exchange = ccxt.okx({"enableRateLimit": True})
 
         # ZeroMQ publisher
         self._zmq_socket = None
@@ -92,7 +104,7 @@ class BTCTrader:
         """Main trading loop using REST polling.
 
         For each interval:
-        1. Fetch latest OHLCV from MEXC
+        1. Fetch latest OHLCV from OKX
         2. Generate signal from strategy
         3. Risk check
         4. Execute if signal changed

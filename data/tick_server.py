@@ -1,7 +1,7 @@
 """ZeroMQ tick server for simulation and distribution (Ch.7).
 
 Publishes OHLCV bars on a PUB socket for strategy subscribers.
-Can replay historical data or forward live MEXC ticks.
+Can replay historical data or forward live OKX ticks.
 """
 
 from __future__ import annotations

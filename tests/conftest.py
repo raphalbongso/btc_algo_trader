@@ -64,8 +64,8 @@ def log_returns(btc_data) -> pd.Series:
 
 
 @pytest.fixture
-def mock_mexc_exchange():
-    """Mock CCXT MEXC exchange object."""
+def mock_okx_exchange():
+    """Mock CCXT OKX exchange object."""
     exchange = MagicMock()
     exchange.fetch_ticker.return_value = {
         "bid": 50000.0, "ask": 50001.0, "last": 50000.5, "baseVolume": 1234.5,
